@@ -8,3 +8,33 @@
 .grid-image .filepond--item {
     width: calc(33.3% - 0.5em);
 }
+
+/* Badge merah untuk notifikasi Filament */
+.fi-topbar button:has(.fi-badge),
+.fi-topbar .fi-icon-btn:has(.fi-badge) {
+    position: relative;
+}
+
+.fi-topbar button .fi-badge,
+.fi-topbar .fi-icon-btn .fi-badge {
+    background-color: #ef4444 !important;
+    color: #ffffff !important;
+    border: 2px solid #ffffff !important;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.25);
+    font-weight: 800;
+}
+
+/* Dot merah kecil di pojok lonceng */
+.fi-topbar button:has(.fi-badge)::after,
+.fi-topbar .fi-icon-btn:has(.fi-badge)::after {
+    content: "";
+    position: absolute;
+    top: 7px;
+    right: 7px;
+    width: 10px;
+    height: 10px;
+    background-color: #ef4444;
+    border: 2px solid #ffffff;
+    border-radius: 999px;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.25);
+}

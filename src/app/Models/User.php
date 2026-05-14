@@ -2,47 +2,36 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Filament\Models\Contracts\FilamentUser;
-use Filament\Models\Contracts\HasAvatar;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
 
-class User extends Authenticatable implements FilamentUser, HasAvatar
+class User extends Authenticatable implements FilamentUser
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory,HasRoles, Notifiable;
+    use HasFactory;
+    use Notifiable;
+    use HasRoles;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
     protected $fillable = [
-        'avatar_url',
         'name',
         'email',
         'password',
+        'no_hp',
+        'nim',
+        'alamat',
+        'role',
+        'status',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [
@@ -51,19 +40,54 @@ class User extends Authenticatable implements FilamentUser, HasAvatar
         ];
     }
 
-    public function getFilamentAvatarUrl(): ?string
-    {
-        if ($this->avatar_url) {
-            return asset('storage/' . $this->avatar_url);
-        } else {
-            $hash = md5(strtolower(trim($this->email)));
-
-            return 'https://www.gravatar.com/avatar/' . $hash . '?d=mp&r=g&s=250';
-        }
-    }
-
     public function canAccessPanel(Panel $panel): bool
     {
-        return true;
+        $punyaRolePanel = $this->hasAnyRole([
+            'super_admin',
+            'admin',
+            'owner',
+        ]);
+
+        $roleKolomManual = in_array($this->role, [
+            'admin',
+            'owner',
+        ], true);
+
+        return ($punyaRolePanel || $roleKolomManual)
+            && ($this->status === 'aktif' || blank($this->status));
+    }
+
+    public function permintaanLayanan(): HasMany
+    {
+        return $this->hasMany(PermintaanLayanan::class, 'user_id');
+    }
+
+    public function logStatusPermintaan(): HasMany
+    {
+        return $this->hasMany(LogStatusPermintaan::class, 'user_id');
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->hasRole('super_admin')
+            || $this->hasRole('admin')
+            || $this->role === 'admin';
+    }
+
+    public function isOwner(): bool
+    {
+        return $this->hasRole('owner')
+            || $this->role === 'owner';
+    }
+
+    public function isUser(): bool
+    {
+        return $this->hasRole('user')
+            || $this->role === 'user';
+    }
+
+    public function isAktif(): bool
+    {
+        return $this->status === 'aktif';
     }
 }

@@ -14,6 +14,10 @@ return [
     |
     */
 
+    'whatsapp' => [
+    'admin_number' => env('WHATSAPP_ADMIN_NUMBER', '6281385184263'),
+    ],
+
     'postmark' => [
         'token' => env('POSTMARK_TOKEN'),
     ],

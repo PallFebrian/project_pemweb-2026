@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Models\User;
+
 use App\Policies\ActivityPolicy;
 use Filament\Actions\MountableAction;
 use Filament\Notifications\Livewire\Notifications;
@@ -30,6 +32,9 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Gate::policy(Activity::class, ActivityPolicy::class);
+        Gate::before(function (User $user, string $ability) {
+            return $user->hasRole('super_admin') ? true : null;
+        });
         Page::formActionsAlignment(Alignment::Right);
         Notifications::alignment(Alignment::End);
         Notifications::verticalAlignment(VerticalAlignment::End);

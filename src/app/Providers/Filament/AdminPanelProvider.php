@@ -2,6 +2,8 @@
 
 namespace App\Providers\Filament;
 
+use Filament\View\PanelsRenderHook;
+use Illuminate\Support\Facades\Auth;
 use Filament\Enums\ThemeMode;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -32,6 +34,10 @@ class AdminPanelProvider extends PanelProvider
             ->path('admin')
             ->spa()
             ->login()
+            ->renderHook(
+                PanelsRenderHook::USER_MENU_BEFORE,
+                fn (): string => view('filament.admin.components.order-notification-badge')->render()
+            )    
             ->passwordReset()
             ->profile(\App\Filament\Pages\Auth\EditProfile::class, isSimple: false)
             ->defaultThemeMode(ThemeMode::Light)
@@ -57,9 +63,9 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->userMenuItems([
                 'profile' => MenuItem::make()
-                    ->label(fn () => auth()->user()->name)
-                    ->url(fn (): string => EditProfilePage::getUrl())
-                    ->icon('heroicon-m-user-circle'),
+                     ->label(fn (): string => Auth::user()?->name ?? 'Admin')
+                     ->url(fn (): string => EditProfilePage::getUrl())
+                     ->icon('heroicon-m-user-circle'),
                 // 'profile' => \Filament\Navigation\MenuItem::make()
                 //     ->label(fn () => auth()->user()->name)
                 //     ->icon('heroicon-m-user-circle'),
