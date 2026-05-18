@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Auth;
 
 class PermintaanLayanan extends Model
 {
@@ -25,10 +26,12 @@ class PermintaanLayanan extends Model
         'status',
         'catatan_admin',
         'whatsapp_url',
+        'dibaca_admin_pada',
     ];
 
     protected $casts = [
         'biaya_layanan' => 'decimal:2',
+        'dibaca_admin_pada' => 'datetime',
     ];
 
     protected static function booted(): void
@@ -36,11 +39,25 @@ class PermintaanLayanan extends Model
         static::saving(function (PermintaanLayanan $permintaan) {
             $permintaan->whatsapp_url = $permintaan->generateWhatsappUrl();
         });
+
+        static::updated(function (PermintaanLayanan $permintaan) {
+            if (! $permintaan->wasChanged('status')) {
+                return;
+            }
+
+            LogStatusPermintaan::create([
+                'permintaan_layanan_id' => $permintaan->id,
+                'user_id' => Auth::id(),
+                'status_lama' => $permintaan->getOriginal('status'),
+                'status_baru' => $permintaan->status,
+                'catatan' => $permintaan->catatan_admin ?: 'Status permintaan diperbarui oleh admin.',
+            ]);
+        });
     }
 
     public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'user_id');
     }
 
     public function kategoriLayanan(): BelongsTo
@@ -48,14 +65,14 @@ class PermintaanLayanan extends Model
         return $this->belongsTo(KategoriLayanan::class, 'kategori_layanan_id');
     }
 
-    public function logStatus(): HasMany
+    public function logStatusPermintaan(): HasMany
     {
         return $this->hasMany(LogStatusPermintaan::class, 'permintaan_layanan_id');
     }
 
     public function generateWhatsappUrl(): string
     {
-        $nomorAdmin = config('services.whatsapp.admin_number', '6281234567890');
+        $nomorAdmin = config('services.whatsapp.admin_number', '6281385184263');
 
         $kategori = $this->kategoriLayanan?->nama ?? '-';
 
@@ -69,9 +86,9 @@ class PermintaanLayanan extends Model
             . "Deskripsi: {$this->deskripsi}\n"
             . "Lokasi Awal: {$this->lokasi_awal}\n"
             . "Lokasi Tujuan: {$this->lokasi_tujuan}\n"
-            . "Biaya Layanan: Rp" . number_format((float) $this->biaya_layanan, 0, ',', '.') . "\n\n"
-            . "Mohon diproses ya.";
+            . "Biaya Layanan: Rp " . number_format((float) $this->biaya_layanan, 0, ',', '.') . "\n\n"
+            . "Mohon diproses ya, terima kasih.";
 
-        return 'https://wa.me/' . $nomorAdmin . '?text=' . urlencode($pesan);
+        return 'https://api.whatsapp.com/send/?phone=' . $nomorAdmin . '&text=' . urlencode($pesan);
     }
 }

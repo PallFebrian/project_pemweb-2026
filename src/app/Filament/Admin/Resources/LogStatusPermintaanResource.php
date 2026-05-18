@@ -4,9 +4,12 @@ namespace App\Filament\Admin\Resources;
 
 use App\Filament\Admin\Resources\LogStatusPermintaanResource\Pages;
 use App\Models\LogStatusPermintaan;
+use Filament\Forms;
+use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 
 class LogStatusPermintaanResource extends Resource
 {
@@ -24,9 +27,62 @@ class LogStatusPermintaanResource extends Resource
 
     protected static ?int $navigationSort = 3;
 
+    public static function canCreate(): bool
+    {
+        return false;
+    }
+
+    public static function canEdit(Model $record): bool
+    {
+        return false;
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        return false;
+    }
+
+    public static function canDeleteAny(): bool
+    {
+        return false;
+    }
+
+    public static function form(Form $form): Form
+    {
+        return $form
+            ->schema([
+                Forms\Components\Section::make('Detail Log Status')
+                    ->schema([
+                        Forms\Components\TextInput::make('permintaanLayanan.kode')
+                            ->label('Kode Request')
+                            ->disabled(),
+
+                        Forms\Components\TextInput::make('user.name')
+                            ->label('Diubah Oleh')
+                            ->disabled(),
+
+                        Forms\Components\TextInput::make('status_lama')
+                            ->label('Status Lama')
+                            ->disabled(),
+
+                        Forms\Components\TextInput::make('status_baru')
+                            ->label('Status Baru')
+                            ->disabled(),
+
+                        Forms\Components\Textarea::make('catatan')
+                            ->label('Catatan')
+                            ->rows(4)
+                            ->disabled()
+                            ->columnSpanFull(),
+                    ])
+                    ->columns(2),
+            ]);
+    }
+
     public static function table(Table $table): Table
     {
         return $table
+            ->defaultSort('created_at', 'desc')
             ->columns([
                 Tables\Columns\TextColumn::make('permintaanLayanan.kode')
                     ->label('Kode Request')
@@ -35,29 +91,39 @@ class LogStatusPermintaanResource extends Resource
 
                 Tables\Columns\TextColumn::make('user.name')
                     ->label('Diubah Oleh')
-                    ->default('-')
-                    ->searchable(),
+                    ->default('Sistem')
+                    ->searchable()
+                    ->sortable(),
 
                 Tables\Columns\TextColumn::make('status_lama')
                     ->label('Status Lama')
                     ->badge()
-                    ->default('-'),
-
-                Tables\Columns\TextColumn::make('status_baru')
-                    ->label('Status Baru')
-                    ->badge()
-                    ->color(fn (string $state): string => match ($state) {
+                    ->default('-')
+                    ->color(fn (?string $state): string => match ($state) {
                         'baru' => 'info',
                         'diproses' => 'warning',
                         'selesai' => 'success',
                         'dibatalkan' => 'danger',
                         default => 'gray',
-                    }),
+                    })
+                    ->formatStateUsing(fn (?string $state): string => $state ? ucfirst($state) : '-'),
+
+                Tables\Columns\TextColumn::make('status_baru')
+                    ->label('Status Baru')
+                    ->badge()
+                    ->color(fn (?string $state): string => match ($state) {
+                        'baru' => 'info',
+                        'diproses' => 'warning',
+                        'selesai' => 'success',
+                        'dibatalkan' => 'danger',
+                        default => 'gray',
+                    })
+                    ->formatStateUsing(fn (?string $state): string => $state ? ucfirst($state) : '-'),
 
                 Tables\Columns\TextColumn::make('catatan')
                     ->label('Catatan')
-                    ->limit(40)
-                    ->default('-'),
+                    ->limit(45)
+                    ->searchable(),
 
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Tanggal')

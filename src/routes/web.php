@@ -29,6 +29,9 @@ Livewire::setScriptRoute(function ($handle) {
 Route::view('/buat-permintaan', 'layanan.permintaan')
     ->name('buat-permintaan');
 
+Route::view('/cek-status', 'layanan.cek-status')
+    ->name('cek-status');
+
 Route::get('/', function () {
     return view('landing', [
         'kategoriLayanan' => KategoriLayanan::query()

@@ -756,6 +756,25 @@
             line-height: 1.75;
         }
 
+        .cta-actions {
+            display: flex;
+            justify-content: center;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+
+        .cta-actions .btn-secondary {
+            color: var(--blue);
+            background: white;
+            border: 1px solid #d7e3f7;
+            box-shadow: 0 12px 28px rgba(16, 33, 63, 0.08);
+        }
+
+        .cta-actions .btn-secondary:hover {
+            border-color: var(--blue);
+            background: var(--blue-soft);
+        }
+
         .footer {
             padding: 0 0 34px;
             color: var(--muted);
@@ -1006,6 +1025,10 @@
                 padding-top: 62px;
                 padding-bottom: 38px;
             }
+
+            .cta-actions {
+                flex-direction: column;
+            }
         }
 
         @media (max-width: 480px) {
@@ -1067,7 +1090,7 @@
     <section class="hero">
         <div class="container">
             <header class="navbar">
-                <a href="/" class="brand">
+                <a href="{{ route('landing') }}" class="brand">
                     <div class="brand-logo">
                         <img src="{{ asset('images/logo-esgul-suruh.png') }}" alt="Logo Esgul Suruh">
                     </div>
@@ -1079,13 +1102,12 @@
                 </a>
 
                 <nav class="nav-menu">
-                    <a href="/">Beranda</a>
+                    <a href="{{ route('landing') }}">Beranda</a>
                     <a href="#layanan">Layanan</a>
                     <a href="#kategori">Kategori</a>
                     <a href="#cara-order">Cara Order</a>
                     <a href="#tipe">Tipe Layanan</a>
-                    <a href="/admin">Admin</a>
-                    <a href="{{ route('buat-permintaan') }}" class="nav-button">Buat Request</a>
+                    <a href="{{ route('cek-status') }}">Cek Status</a>
                 </nav>
             </header>
 
@@ -1106,8 +1128,8 @@
                             Buat Request Sekarang
                         </a>
 
-                        <a href="#kategori" class="btn-secondary">
-                            Lihat Kategori
+                        <a href="{{ route('cek-status') }}" class="btn-secondary">
+                            Cek Status Request
                         </a>
                     </div>
 
@@ -1333,11 +1355,18 @@
                 <p>
                     Isi request layanan sekarang, pilih kategori dan tipe layanan,
                     lalu lanjutkan komunikasi langsung melalui WhatsApp admin.
+                    Kalau sudah pernah membuat request, kamu juga bisa cek statusnya kapan saja.
                 </p>
 
-                <a href="{{ route('buat-permintaan') }}" class="btn-primary">
-                    Buat Request Sekarang
-                </a>
+                <div class="cta-actions">
+                    <a href="{{ route('buat-permintaan') }}" class="btn-primary">
+                        Buat Request Sekarang
+                    </a>
+
+                    <a href="{{ route('cek-status') }}" class="btn-secondary">
+                        Cek Status Request
+                    </a>
+                </div>
             </div>
         </div>
     </section>

@@ -4,10 +4,12 @@ namespace App\Livewire;
 
 use App\Filament\Admin\Resources\PermintaanLayananResource;
 use App\Models\KategoriLayanan;
+use App\Models\LogStatusPermintaan;
 use App\Models\PermintaanLayanan;
 use App\Models\User;
+use Filament\Notifications\Actions\Action;
+use Filament\Notifications\Notification as FilamentNotification;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Livewire\Component;
@@ -92,6 +94,14 @@ class FormPermintaanLayanan extends Component
             'status' => 'baru',
         ]);
 
+        LogStatusPermintaan::create([
+             'permintaan_layanan_id' => $permintaan->id,
+             'user_id' => Auth::id(),
+             'status_lama' => null,
+             'status_baru' => 'baru',
+             'catatan' => 'Permintaan dibuat oleh user melalui website.',
+        ]);
+
         $this->kirimNotifikasiAdmin($permintaan);
 
         $whatsappUrl = $permintaan->whatsapp_url;
@@ -108,77 +118,53 @@ class FormPermintaanLayanan extends Component
         ]);
 
         $this->tipe_layanan = 'normal';
+
         $this->pesan_sukses = 'Request berhasil dibuat. WhatsApp admin dibuka di tab baru.';
 
         $this->dispatch('buka-whatsapp-tab-baru', url: $whatsappUrl);
     }
 
     protected function kirimNotifikasiAdmin(PermintaanLayanan $permintaan): void
-{
-    $users = User::query()->get();
+    {
+        $adminUsers = User::query()->get();
 
-    if ($users->isEmpty()) {
-        return;
+        if ($adminUsers->isEmpty()) {
+            return;
+        }
+
+        FilamentNotification::make()
+            ->title('Orderan Baru Masuk')
+            ->body(
+                $permintaan->nama_pemesan .
+                ' membuat request "' .
+                $permintaan->judul .
+                '" dengan kode ' .
+                $permintaan->kode .
+                '.'
+            )
+            ->icon('heroicon-o-bell-alert')
+            ->iconColor('warning')
+            ->actions([
+                Action::make('lihat')
+                    ->label('Lihat Request')
+                    ->button()
+                    ->url(
+                        PermintaanLayananResource::getUrl(
+                            'edit',
+                            ['record' => $permintaan],
+                            panel: 'admin'
+                        )
+                    ),
+            ])
+            ->sendToDatabase($adminUsers);
     }
-
-    $targetUrl = PermintaanLayananResource::getUrl(
-        'edit',
-        ['record' => $permintaan->id],
-        panel: 'admin'
-    );
-
-    foreach ($users as $user) {
-        $notificationId = (string) Str::uuid();
-
-        DB::table('notifications')->insert([
-            'id' => $notificationId,
-            'type' => 'Filament\Notifications\DatabaseNotification',
-            'notifiable_type' => User::class,
-            'notifiable_id' => $user->id,
-            'data' => json_encode([
-                'format' => 'filament',
-                'title' => 'Orderan Baru Masuk',
-                'body' => $permintaan->nama_pemesan .
-                    ' membuat request "' .
-                    $permintaan->judul .
-                    '" dengan kode ' .
-                    $permintaan->kode .
-                    '.',
-                'icon' => 'heroicon-o-bell-alert',
-                'iconColor' => 'warning',
-                'color' => null,
-                'status' => null,
-                'duration' => null,
-                'view' => null,
-                'viewData' => [],
-                'target_url' => $targetUrl,
-                'actions' => [
-                    [
-                        'name' => 'lihat',
-                        'label' => 'Lihat Request',
-                        'url' => route('admin.notifikasi.buka', [
-                            'notification' => $notificationId,
-                        ]),
-                        'color' => 'primary',
-                        'shouldOpenUrlInNewTab' => false,
-                        'shouldClose' => false,
-                        'isOutlined' => false,
-                        'isDisabled' => false,
-                        'isButton' => true,
-                    ],
-                ],
-            ]),
-            'read_at' => null,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-    }
-}
 
     public function render()
     {
         return view('livewire.form-permintaan-layanan', [
-            'kategoriLayanan' => KategoriLayanan::orderBy('nama')->get(),
+            'kategoriLayanan' => KategoriLayanan::query()
+                ->orderBy('nama')
+                ->get(),
         ]);
     }
 }
