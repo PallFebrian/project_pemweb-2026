@@ -46,4 +46,9 @@ class KategoriLayanan extends Model
     {
         return $this->hasMany(PermintaanLayanan::class, 'kategori_layanan_id');
     }
+
+    public function layananJasaSuruhs(): HasMany
+    {
+        return $this->hasMany(LayananJasaSuruh::class, 'kategori_layanan_id');
+    }
 }

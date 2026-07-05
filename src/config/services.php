@@ -18,6 +18,11 @@ return [
     'admin_number' => env('WHATSAPP_ADMIN_NUMBER', '6281385184263'),
     ],
 
+    'google_maps' => [
+    'key' => env('GOOGLE_MAPS_API_KEY'),
+    'enabled' => env('GOOGLE_MAPS_API_ENABLED', true),
+    ],
+
     'postmark' => [
         'token' => env('POSTMARK_TOKEN'),
     ],

@@ -7,36 +7,64 @@ use Illuminate\Console\Command;
 class ProjectInitialize extends Command
 {
     /**
-     * The name and signature of the console command.
-     *
-     * @var string
+     * Nama dan opsi command.
      */
-    protected $signature = 'project:init';
+    protected $signature = 'project:init
+                            {--seed : Jalankan database seeder}
+                            {--shield : Generate permission Filament Shield}';
 
     /**
-     * The console command description.
-     *
-     * @var string
+     * Deskripsi command.
      */
-    protected $description = 'Project Initialization';
+    protected $description = 'Inisialisasi project tanpa menghapus data database';
 
     /**
-     * Execute the console command.
+     * Jalankan command.
      */
-    public function handle()
+    public function handle(): int
     {
-        $this->call('migrate:fresh', [
-            '--force' => true,
-        ]);
-        $this->call('shield:generate', [
-            '--all' => true,
-            '--panel' => 'admin',
-        ]);
-        $this->call('db:seed', [
+        $this->info('Menjalankan inisialisasi project...');
+
+        /*
+         * Hanya menjalankan migration yang belum pernah dijalankan.
+         * Data yang sudah ada tidak akan dihapus.
+         */
+        $this->call('migrate', [
             '--force' => true,
         ]);
 
+        /*
+         * Generate permission Shield hanya jika opsi --shield diberikan.
+         */
+        if ($this->option('shield')) {
+            $this->info('Generate permission Filament Shield...');
+
+            $this->call('shield:generate', [
+                '--all' => true,
+                '--panel' => 'admin',
+            ]);
+        }
+
+        /*
+         * Jalankan seeder hanya jika opsi --seed diberikan.
+         */
+        if ($this->option('seed')) {
+            $this->info('Menjalankan database seeder...');
+
+            $this->call('db:seed', [
+                '--force' => true,
+            ]);
+        }
+
+        /*
+         * Membersihkan cache Filament dan Laravel.
+         */
         $this->call('filament:optimize-clear');
         $this->call('optimize:clear');
+
+        $this->newLine();
+        $this->info('Inisialisasi selesai. Data database tetap aman.');
+
+        return self::SUCCESS;
     }
 }
