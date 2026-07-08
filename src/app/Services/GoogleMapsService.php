@@ -2,73 +2,126 @@
 
 namespace App\Services;
 
-use Exception;
 use Illuminate\Support\Facades\Http;
+use RuntimeException;
 
 class GoogleMapsService
 {
+    private string $apiKey;
+
+    private bool $enabled;
+
+    public function __construct()
+    {
+        $this->apiKey = (string) config(
+            'services.google_maps.api_key',
+            ''
+        );
+
+        $this->enabled = (bool) config(
+            'services.google_maps.enabled',
+            false
+        );
+    }
+
     public function getTotalDistanceKm(
         string $basecamp,
         string $alamatEksekusi,
         string $alamatTujuan
     ): float {
-        $distanceBasecampToEksekusi = $this->getDistanceKm(
+        if (! $this->enabled) {
+            throw new RuntimeException(
+                'Google Maps API sedang dinonaktifkan.'
+            );
+        }
+
+        if (blank($this->apiKey)) {
+            throw new RuntimeException(
+                'Google Maps API key belum diisi.'
+            );
+        }
+
+        if (
+            blank($basecamp)
+            || blank($alamatEksekusi)
+            || blank($alamatTujuan)
+        ) {
+            throw new RuntimeException(
+                'Alamat basecamp, eksekusi, dan tujuan wajib diisi.'
+            );
+        }
+
+        $jarakBasecampKeEksekusi = $this->getDistanceMeters(
             origin: $basecamp,
             destination: $alamatEksekusi
         );
 
-        $distanceEksekusiToTujuan = $this->getDistanceKm(
+        $jarakEksekusiKeTujuan = $this->getDistanceMeters(
             origin: $alamatEksekusi,
             destination: $alamatTujuan
         );
 
-        return round($distanceBasecampToEksekusi + $distanceEksekusiToTujuan, 2);
+        $totalMeter = $jarakBasecampKeEksekusi
+            + $jarakEksekusiKeTujuan;
+
+        return round($totalMeter / 1000, 2);
     }
 
-    private function getDistanceKm(string $origin, string $destination): float
-    {
-        $apiKey = config('services.google_maps.key');
-        $enabled = config('services.google_maps.enabled');
+    private function getDistanceMeters(
+        string $origin,
+        string $destination
+    ): int {
+        $response = Http::timeout(15)
+            ->retry(2, 500)
+            ->get(
+                'https://maps.googleapis.com/maps/api/distancematrix/json',
+                [
+                    'origins' => $origin,
+                    'destinations' => $destination,
+                    'mode' => 'driving',
+                    'language' => 'id',
+                    'region' => 'id',
+                    'key' => $this->apiKey,
+                ]
+            );
 
-        if (! $enabled) {
-            throw new Exception('Google Maps API sedang dinonaktifkan di pengaturan sistem.');
-        }
-
-        if (blank($apiKey)) {
-            throw new Exception('Google Maps API key belum dikonfigurasi di file .env.');
-        }
-
-        $response = Http::timeout(15)->get('https://maps.googleapis.com/maps/api/distancematrix/json', [
-            'origins' => $origin,
-            'destinations' => $destination,
-            'key' => $apiKey,
-            'units' => 'metric',
-            'region' => 'id',
-            'language' => 'id',
-        ]);
-
-        if (! $response->successful()) {
-            throw new Exception('Gagal menghubungi Google Maps API.');
+        if ($response->failed()) {
+            throw new RuntimeException(
+                'Gagal menghubungi layanan Google Maps.'
+            );
         }
 
         $data = $response->json();
 
         if (($data['status'] ?? null) !== 'OK') {
-            throw new Exception('Google Maps API gagal memproses request.');
+            $pesan = $data['error_message']
+                ?? $data['status']
+                ?? 'Unknown error';
+
+            throw new RuntimeException(
+                'Google Maps API gagal: ' . $pesan
+            );
         }
 
         $element = $data['rows'][0]['elements'][0] ?? null;
 
-        if (! $element || ($element['status'] ?? null) !== 'OK') {
-            throw new Exception('Google Maps API tidak dapat menemukan jarak untuk alamat tersebut.');
+        if (
+            ! is_array($element)
+            || ($element['status'] ?? null) !== 'OK'
+        ) {
+            throw new RuntimeException(
+                'Rute antara alamat tidak dapat ditemukan.'
+            );
         }
 
-        $distanceInMeters = $element['distance']['value'] ?? null;
+        $jarakMeter = $element['distance']['value'] ?? null;
 
-        if (! $distanceInMeters) {
-            throw new Exception('Data jarak dari Google Maps API tidak tersedia.');
+        if (! is_numeric($jarakMeter)) {
+            throw new RuntimeException(
+                'Data jarak dari Google Maps tidak valid.'
+            );
         }
 
-        return $distanceInMeters / 1000;
+        return (int) $jarakMeter;
     }
 }

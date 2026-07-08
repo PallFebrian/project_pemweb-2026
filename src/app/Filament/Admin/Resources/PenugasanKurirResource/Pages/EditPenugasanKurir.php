@@ -6,6 +6,7 @@ use App\Filament\Admin\Resources\PenugasanKurirResource;
 use Filament\Actions;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
+use Illuminate\Support\Facades\DB;
 
 class EditPenugasanKurir extends EditRecord
 {
@@ -20,14 +21,28 @@ class EditPenugasanKurir extends EditRecord
                 ->color('success')
                 ->requiresConfirmation()
                 ->modalHeading('Mulai Perjalanan')
-                ->modalDescription('Status penugasan akan berubah menjadi Berjalan dan waktu berangkat akan dicatat.')
+                ->modalDescription(
+                    'Status penugasan akan berubah menjadi Berjalan dan status pesanan menjadi Dalam Perjalanan.'
+                )
                 ->modalSubmitActionLabel('Mulai')
-                ->visible(fn (): bool => $this->record->status_penugasan === 'menunggu')
+                ->visible(
+                    fn (): bool =>
+                        $this->record->status_penugasan === 'menunggu'
+                )
                 ->action(function (): void {
-                    $this->record->update([
-                        'status_penugasan' => 'berjalan',
-                        'waktu_berangkat' => now(),
-                    ]);
+                    DB::transaction(function (): void {
+                        $this->record->update([
+                            'status_penugasan' => 'berjalan',
+                            'waktu_berangkat' => now(),
+                        ]);
+
+                        $this->record->order?->update([
+                            'kurir_id' => $this->record->kurir_id,
+                            'status_order' => 'dalam_perjalanan',
+                        ]);
+                    });
+
+                    $this->record->refresh();
 
                     $this->refreshFormData([
                         'status_penugasan',
@@ -36,7 +51,9 @@ class EditPenugasanKurir extends EditRecord
 
                     Notification::make()
                         ->title('Perjalanan dimulai')
-                        ->body('Status order otomatis berubah menjadi Dalam Perjalanan.')
+                        ->body(
+                            'Status pesanan telah berubah menjadi Dalam Perjalanan.'
+                        )
                         ->success()
                         ->send();
                 }),
@@ -47,14 +64,32 @@ class EditPenugasanKurir extends EditRecord
                 ->color('warning')
                 ->requiresConfirmation()
                 ->modalHeading('Tiba di Lokasi Eksekusi')
-                ->modalDescription('Waktu sampai di lokasi eksekusi akan dicatat.')
+                ->modalDescription(
+                    'Waktu sampai di lokasi eksekusi akan dicatat.'
+                )
                 ->modalSubmitActionLabel('Simpan')
-                ->visible(fn (): bool => $this->record->status_penugasan === 'berjalan')
+                ->visible(
+                    fn (): bool =>
+                        $this->record->status_penugasan
+                        === 'berjalan'
+                )
                 ->action(function (): void {
-                    $this->record->update([
-                        'status_penugasan' => 'sampai_eksekusi',
-                        'waktu_sampai_eksekusi' => now(),
-                    ]);
+                    DB::transaction(function (): void {
+                        $this->record->update([
+                            'status_penugasan' =>
+                                'sampai_eksekusi',
+
+                            'waktu_sampai_eksekusi' =>
+                                now(),
+                        ]);
+
+                        $this->record->order?->update([
+                            'kurir_id' => $this->record->kurir_id,
+                            'status_order' => 'dalam_perjalanan',
+                        ]);
+                    });
+
+                    $this->record->refresh();
 
                     $this->refreshFormData([
                         'status_penugasan',
@@ -62,7 +97,10 @@ class EditPenugasanKurir extends EditRecord
                     ]);
 
                     Notification::make()
-                        ->title('Waktu sampai eksekusi tersimpan')
+                        ->title('Kurir tiba di lokasi eksekusi')
+                        ->body(
+                            'Status pesanan tetap Dalam Perjalanan.'
+                        )
                         ->success()
                         ->send();
                 }),
@@ -73,14 +111,37 @@ class EditPenugasanKurir extends EditRecord
                 ->color('primary')
                 ->requiresConfirmation()
                 ->modalHeading('Tiba di Tujuan Akhir')
-                ->modalDescription('Waktu sampai di alamat tujuan akan dicatat.')
+                ->modalDescription(
+                    'Waktu sampai di alamat tujuan akan dicatat.'
+                )
                 ->modalSubmitActionLabel('Simpan')
-                ->visible(fn (): bool => $this->record->status_penugasan === 'sampai_eksekusi')
+                ->visible(
+                    fn (): bool =>
+                        $this->record->status_penugasan
+                        === 'sampai_eksekusi'
+                )
                 ->action(function (): void {
-                    $this->record->update([
-                        'status_penugasan' => 'sampai_tujuan',
-                        'waktu_sampai_tujuan' => now(),
-                    ]);
+                    DB::transaction(function (): void {
+                        $this->record->update([
+                            'status_penugasan' =>
+                                'sampai_tujuan',
+
+                            'waktu_sampai_tujuan' =>
+                                now(),
+                        ]);
+
+                        /*
+                         * Pesanan belum langsung selesai.
+                         * Masih menunggu bukti serah terima
+                         * dan penyelesaian oleh admin.
+                         */
+                        $this->record->order?->update([
+                            'kurir_id' => $this->record->kurir_id,
+                            'status_order' => 'dalam_perjalanan',
+                        ]);
+                    });
+
+                    $this->record->refresh();
 
                     $this->refreshFormData([
                         'status_penugasan',
@@ -88,13 +149,13 @@ class EditPenugasanKurir extends EditRecord
                     ]);
 
                     Notification::make()
-                        ->title('Waktu sampai tujuan tersimpan')
-                        ->body('Setelah ini lanjut ke upload bukti dan rekonsiliasi akhir.')
+                        ->title('Kurir telah sampai tujuan')
+                        ->body(
+                            'Silakan unggah bukti serah terima. Pesanan akan diselesaikan oleh admin.'
+                        )
                         ->success()
                         ->send();
                 }),
-
-            Actions\DeleteAction::make(),
         ];
     }
 }

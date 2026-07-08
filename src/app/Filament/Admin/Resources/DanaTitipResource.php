@@ -10,6 +10,7 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class DanaTitipResource extends Resource
 {
@@ -34,16 +35,32 @@ class DanaTitipResource extends Resource
                 Forms\Components\Section::make('Data Pesanan')
                     ->schema([
                         Forms\Components\Select::make('order_id')
-                            ->label('Kode Order')
-                            ->options(fn () => Order::query()
-                                ->orderByDesc('created_at')
-                                ->get()
-                                ->mapWithKeys(fn (Order $order) => [
-                                    $order->id => $order->kode_order . ' - ' . $order->nama_pelanggan,
-                                ]))
+                            ->label('Pesanan')
+                            ->options(function (?DanaTitip $record): array {
+                                return Order::query()
+                                    ->where(function (Builder $query) use ($record): void {
+                                        $query->whereDoesntHave('danaTitip');
+
+                                        if ($record?->order_id) {
+                                            $query->orWhere('orders.id', $record->order_id);
+                                        }
+                                    })
+                                    ->latest()
+                                    ->get()
+                                    ->mapWithKeys(
+                                        fn (Order $order): array => [
+                                            $order->id =>
+                                                $order->kode_order
+                                                . ' - '
+                                                . $order->nama_pelanggan,
+                                        ]
+                                    )
+                                    ->all();
+                            })
                             ->searchable()
                             ->preload()
-                            ->required(),
+                            ->required()
+                            ->disabledOn('edit'),
                     ]),
 
                 Forms\Components\Section::make('Informasi Dana Titip Barang')

@@ -3,10 +3,11 @@
 namespace App\Filament\Admin\Resources;
 
 use App\Filament\Admin\Resources\OrderResource\Pages;
+use App\Filament\Admin\Resources\OrderResource\RelationManagers\KomplainPelanggansRelationManager;
+use App\Filament\Admin\Resources\OrderResource\RelationManagers\RiwayatStatusOrdersRelationManager;
 use App\Models\LayananJasaSuruh;
 use App\Models\Order;
 use App\Models\Pelanggan;
-use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -37,13 +38,15 @@ class OrderResource extends Resource
                     ->schema([
                         Forms\Components\Select::make('pelanggan_id')
                             ->label('Pelanggan Terdaftar')
-                            ->options(fn () => Pelanggan::query()
-                                ->orderBy('nama')
-                                ->pluck('nama', 'id'))
+                            ->options(
+                                fn () => Pelanggan::query()
+                                    ->orderBy('nama')
+                                    ->pluck('nama', 'id')
+                            )
                             ->searchable()
                             ->preload()
                             ->live()
-                            ->afterStateUpdated(function ($state, Forms\Set $set) {
+                            ->afterStateUpdated(function ($state, Forms\Set $set): void {
                                 if (! $state) {
                                     return;
                                 }
@@ -52,7 +55,10 @@ class OrderResource extends Resource
 
                                 if ($pelanggan) {
                                     $set('nama_pelanggan', $pelanggan->nama);
-                                    $set('nomor_whatsapp', $pelanggan->nomor_whatsapp);
+                                    $set(
+                                        'nomor_whatsapp',
+                                        $pelanggan->nomor_whatsapp
+                                    );
                                 }
                             }),
 
@@ -80,10 +86,12 @@ class OrderResource extends Resource
 
                         Forms\Components\Select::make('jenis_layanan_id')
                             ->label('Jenis Layanan')
-                            ->options(fn () => LayananJasaSuruh::query()
-                                ->where('status', true)
-                                ->orderBy('nama_layanan')
-                                ->pluck('nama_layanan', 'id'))
+                            ->options(
+                                fn () => LayananJasaSuruh::query()
+                                    ->where('status', true)
+                                    ->orderBy('nama_layanan')
+                                    ->pluck('nama_layanan', 'id')
+                            )
                             ->searchable()
                             ->preload()
                             ->required(),
@@ -167,37 +175,33 @@ class OrderResource extends Resource
                         Forms\Components\Hidden::make('status_order')
                             ->default('menunggu_verifikasi'),
 
-                Forms\Components\Placeholder::make('status_order_display')
-                    ->label('Status Order')
-                        ->content(function (?Order $record): string {
-                            $status = $record?->status_order ?? 'menunggu_verifikasi';
+                        Forms\Components\Placeholder::make(
+                            'status_order_display'
+                        )
+                            ->label('Status Order')
+                            ->content(function (?Order $record): string {
+                                $status = $record?->status_order
+                                    ?? 'menunggu_verifikasi';
 
-                        return match ($status) {
-                            'menunggu_verifikasi' => 'Menunggu Verifikasi',
-                            'menunggu_dana_titip' => 'Menunggu Dana Titip',
-                            'menunggu_kurir' => 'Menunggu Kurir',
-                            'dalam_perjalanan' => 'Dalam Perjalanan',
-                            'selesai' => 'Selesai',
-                            'dibatalkan' => 'Dibatalkan',
-                        default => $status,
-                };
-            }),
+                                return Order::labelStatus($status);
+                            }),
 
-                Forms\Components\Placeholder::make('kurir_display')
-                    ->label('Kurir')
-                    ->content(
-                    fn (?Order $record): string =>
-                        $record?->kurir?->name ?? 'Belum ditugaskan'
-                ),
+                        Forms\Components\Placeholder::make('kurir_display')
+                            ->label('Kurir')
+                            ->content(
+                                fn (?Order $record): string =>
+                                    $record?->kurir?->name
+                                    ?? 'Belum ditugaskan'
+                            ),
 
-                Forms\Components\DateTimePicker::make('tanggal_order')
-                    ->label('Tanggal Order')
-                    ->seconds(false)
-                    ->disabled()
-                    ->dehydrated(false)
-                    ->placeholder('Otomatis saat pesanan dibuat'),
-            ])
-            ->columns(3),
+                        Forms\Components\DateTimePicker::make('tanggal_order')
+                            ->label('Tanggal Order')
+                            ->seconds(false)
+                            ->disabled()
+                            ->dehydrated(false)
+                            ->placeholder('Otomatis saat pesanan dibuat'),
+                    ])
+                    ->columns(3),
             ]);
     }
 
@@ -219,7 +223,9 @@ class OrderResource extends Resource
                     ->label('WhatsApp')
                     ->searchable(),
 
-                Tables\Columns\TextColumn::make('jenisLayanan.nama_layanan')
+                Tables\Columns\TextColumn::make(
+                    'jenisLayanan.nama_layanan'
+                )
                     ->label('Layanan')
                     ->searchable()
                     ->sortable(),
@@ -227,22 +233,66 @@ class OrderResource extends Resource
                 Tables\Columns\TextColumn::make('pilihan_layanan')
                     ->label('Pilihan')
                     ->badge()
-                    ->formatStateUsing(fn (string $state): string => match ($state) {
-                        'normal' => 'Normal',
-                        'express' => 'Express',
-                        default => $state,
-                    })
-                    ->color(fn (string $state): string => match ($state) {
-                        'normal' => 'gray',
-                        'express' => 'warning',
-                        default => 'gray',
-                    }),
+                    ->formatStateUsing(
+                        fn (string $state): string => match ($state) {
+                            'normal' => 'Normal',
+                            'express' => 'Express',
+                            default => $state,
+                        }
+                    )
+                    ->color(
+                        fn (string $state): string => match ($state) {
+                            'normal' => 'gray',
+                            'express' => 'warning',
+                            default => 'gray',
+                        }
+                    ),
 
                 Tables\Columns\TextColumn::make('total_jarak_km')
                     ->label('Jarak')
                     ->suffix(' KM')
                     ->placeholder('-')
                     ->sortable(),
+
+                    Tables\Columns\TextColumn::make('pembayaran.metode_pembayaran')
+                        ->label('Pembayaran')
+                        ->badge()
+                        ->placeholder('Belum dicatat')
+                        ->formatStateUsing(
+                            fn (?string $state): string => match ($state) {
+                                'cod' => 'COD',
+                                'full_transfer' => 'Transfer',
+                                default => $state ?? 'Belum dicatat',
+                            }
+                        )
+                        ->color(
+                            fn (?string $state): string => match ($state) {
+                                'cod' => 'warning',
+                                'full_transfer' => 'info',
+                                default => 'gray',
+                            }
+                        ),
+
+                    Tables\Columns\TextColumn::make('pembayaran.status_pembayaran')
+                        ->label('Status Bayar')
+                        ->badge()
+                        ->placeholder('Belum dicatat')
+                        ->formatStateUsing(
+                            fn (?string $state): string => match ($state) {
+                                'pending' => 'Pending',
+                                'cod' => 'COD',
+                                'lunas' => 'Lunas',
+                                default => $state ?? 'Belum dicatat',
+                            }
+                        )
+                        ->color(
+                            fn (?string $state): string => match ($state) {
+                                'pending' => 'warning',
+                                'cod' => 'info',
+                                'lunas' => 'success',
+                                default => 'gray',
+                            }
+                        ),
 
                 Tables\Columns\TextColumn::make('total_biaya_jasa')
                     ->label('Total Biaya')
@@ -252,24 +302,21 @@ class OrderResource extends Resource
                 Tables\Columns\TextColumn::make('status_order')
                     ->label('Status')
                     ->badge()
-                    ->formatStateUsing(fn (string $state): string => match ($state) {
-                        'menunggu_verifikasi' => 'Menunggu Verifikasi',
-                        'menunggu_dana_titip' => 'Menunggu Dana Titip',
-                        'menunggu_kurir' => 'Menunggu Kurir',
-                        'dalam_perjalanan' => 'Dalam Perjalanan',
-                        'selesai' => 'Selesai',
-                        'dibatalkan' => 'Dibatalkan',
-                        default => $state,
-                    })
-                    ->color(fn (string $state): string => match ($state) {
-                        'menunggu_verifikasi' => 'gray',
-                        'menunggu_dana_titip' => 'warning',
-                        'menunggu_kurir' => 'info',
-                        'dalam_perjalanan' => 'primary',
-                        'selesai' => 'success',
-                        'dibatalkan' => 'danger',
-                        default => 'gray',
-                    }),
+                    ->formatStateUsing(
+                        fn (string $state): string =>
+                            Order::labelStatus($state)
+                    )
+                    ->color(
+                        fn (string $state): string => match ($state) {
+                            'menunggu_verifikasi' => 'gray',
+                            'menunggu_dana_titip' => 'warning',
+                            'menunggu_kurir' => 'info',
+                            'dalam_perjalanan' => 'primary',
+                            'selesai' => 'success',
+                            'dibatalkan' => 'danger',
+                            default => 'gray',
+                        }
+                    ),
 
                 Tables\Columns\TextColumn::make('kurir.name')
                     ->label('Kurir')
@@ -311,6 +358,14 @@ class OrderResource extends Resource
                 ]),
             ])
             ->defaultSort('created_at', 'desc');
+    }
+
+    public static function getRelations(): array
+    {
+    return [
+        RiwayatStatusOrdersRelationManager::class,
+        KomplainPelanggansRelationManager::class,
+    ];
     }
 
     public static function getPages(): array

@@ -13,6 +13,7 @@ class LayananJasaSuruh extends Model
         'harga_dasar' => 'decimal:2',
         'bisa_express' => 'boolean',
         'status' => 'boolean',
+        'butuh_dana_titip' => 'boolean',
     ];
 
     protected static function booted(): void

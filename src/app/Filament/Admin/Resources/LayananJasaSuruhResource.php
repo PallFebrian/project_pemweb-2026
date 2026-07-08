@@ -77,6 +77,13 @@ class LayananJasaSuruhResource extends Resource
                             ->label('Bisa Express')
                             ->default(false),
 
+                        Forms\Components\Toggle::make('butuh_dana_titip')
+                            ->label('Butuh Dana Titip')
+                            ->helperText(
+                                'Aktifkan jika kurir perlu uang pelanggan untuk membeli barang.'
+                            )
+                            ->default(false),
+
                         Forms\Components\Toggle::make('status')
                             ->label('Aktif')
                             ->default(true),
@@ -110,6 +117,10 @@ class LayananJasaSuruhResource extends Resource
 
                 Tables\Columns\IconColumn::make('bisa_express')
                     ->label('Express')
+                    ->boolean(),
+
+                Tables\Columns\IconColumn::make('butuh_dana_titip')
+                    ->label('Dana Titip')
                     ->boolean(),
 
                 Tables\Columns\IconColumn::make('status')

@@ -5,6 +5,7 @@ namespace App\Filament\Admin\Resources;
 use App\Filament\Admin\Resources\PembayaranResource\Pages;
 use App\Models\Order;
 use App\Models\Pembayaran;
+use Illuminate\Database\Eloquent\Builder;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -34,16 +35,32 @@ class PembayaranResource extends Resource
                 Forms\Components\Section::make('Data Pesanan')
                     ->schema([
                         Forms\Components\Select::make('order_id')
-                            ->label('Kode Order')
-                            ->options(fn () => Order::query()
-                                ->orderByDesc('created_at')
-                                ->get()
-                                ->mapWithKeys(fn (Order $order) => [
-                                    $order->id => $order->kode_order . ' - ' . $order->nama_pelanggan,
-                                ]))
+                            ->label('Pesanan')
+                            ->options(function (?Pembayaran $record): array {
+                                return Order::query()
+                                    ->where(function (Builder $query) use ($record): void {
+                                        $query->whereDoesntHave('pembayaran');
+
+                                        if ($record?->order_id) {
+                                            $query->orWhere('orders.id', $record->order_id);
+                                        }
+                                    })
+                                    ->latest()
+                                    ->get()
+                                    ->mapWithKeys(
+                                        fn (Order $order): array => [
+                                            $order->id =>
+                                                $order->kode_order
+                                                . ' - '
+                                                . $order->nama_pelanggan,
+                                        ]
+                                    )
+                                    ->all();
+                            })
                             ->searchable()
                             ->preload()
-                            ->required(),
+                            ->required()
+                            ->disabledOn('edit'),
                     ]),
 
                 Forms\Components\Section::make('Informasi Pembayaran Biaya Jasa')

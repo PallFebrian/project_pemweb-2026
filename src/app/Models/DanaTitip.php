@@ -18,8 +18,50 @@ class DanaTitip extends Model
 
     protected static function booted(): void
     {
-        static::saving(function (DanaTitip $danaTitip) {
-            $danaTitip->selisih_dana = $danaTitip->dana_diterima - $danaTitip->dana_terpakai;
+        static::saving(function (DanaTitip $danaTitip): void {
+            $danaDiterima = (int) ($danaTitip->dana_diterima ?? 0);
+            $danaTerpakai = (int) ($danaTitip->dana_terpakai ?? 0);
+
+            $danaTitip->selisih_dana =
+                $danaDiterima - $danaTerpakai;
+        });
+
+        static::saved(function (DanaTitip $danaTitip): void {
+            $order = $danaTitip->order;
+
+            if (! $order) {
+                return;
+            }
+
+            if (in_array($order->status_order, [
+                'selesai',
+                'dibatalkan',
+                'dalam_perjalanan',
+            ], true)) {
+                return;
+            }
+
+            if ($danaTitip->status_dana_titip === 'diterima') {
+                if (in_array($order->status_order, [
+                    'menunggu_verifikasi',
+                    'menunggu_dana_titip',
+                ], true)) {
+                    $order->update([
+                        'status_order' => 'menunggu_kurir',
+                    ]);
+                }
+
+                return;
+            }
+
+            if (
+                $danaTitip->status_dana_titip !== 'selesai'
+                && $order->status_order === 'menunggu_verifikasi'
+            ) {
+                $order->update([
+                    'status_order' => 'menunggu_dana_titip',
+                ]);
+            }
         });
     }
 

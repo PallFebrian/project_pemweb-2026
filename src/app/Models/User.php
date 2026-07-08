@@ -46,38 +46,63 @@ class User extends Authenticatable implements FilamentUser
             'super_admin',
             'admin',
             'owner',
+            'pemilik_bisnis',
+            'kurir',
         ]);
 
         $roleKolomManual = in_array($this->role, [
             'admin',
             'owner',
+            'pemilik_bisnis',
+            'kurir',
         ], true);
 
+        $statusAktif = $this->status === 'aktif'
+            || blank($this->status);
+
         return ($punyaRolePanel || $roleKolomManual)
-            && ($this->status === 'aktif' || blank($this->status));
+            && $statusAktif;
     }
 
     public function permintaanLayanan(): HasMany
     {
-        return $this->hasMany(PermintaanLayanan::class, 'user_id');
+        return $this->hasMany(
+            PermintaanLayanan::class,
+            'user_id'
+        );
     }
 
     public function logStatusPermintaan(): HasMany
     {
-        return $this->hasMany(LogStatusPermintaan::class, 'user_id');
+        return $this->hasMany(
+            LogStatusPermintaan::class,
+            'user_id'
+        );
     }
 
     public function isAdmin(): bool
     {
-        return $this->hasRole('super_admin')
-            || $this->hasRole('admin')
-            || $this->role === 'admin';
+        return $this->hasAnyRole([
+            'super_admin',
+            'admin',
+        ]) || $this->role === 'admin';
     }
 
     public function isOwner(): bool
     {
-        return $this->hasRole('owner')
-            || $this->role === 'owner';
+        return $this->hasAnyRole([
+            'owner',
+            'pemilik_bisnis',
+        ]) || in_array($this->role, [
+            'owner',
+            'pemilik_bisnis',
+        ], true);
+    }
+
+    public function isKurir(): bool
+    {
+        return $this->hasRole('kurir')
+            || $this->role === 'kurir';
     }
 
     public function isUser(): bool
@@ -88,6 +113,7 @@ class User extends Authenticatable implements FilamentUser
 
     public function isAktif(): bool
     {
-        return $this->status === 'aktif';
+        return $this->status === 'aktif'
+            || blank($this->status);
     }
 }

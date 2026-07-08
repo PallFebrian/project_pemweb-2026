@@ -363,6 +363,11 @@ class PermintaanLayananResource extends Resource
         ];
     }
 
+    public static function shouldRegisterNavigation(): bool
+    {
+        return false;
+    }
+
     protected static function setBiayaLayanan(Forms\Get $get, Forms\Set $set): void
     {
         $kategoriId = $get('kategori_layanan_id');

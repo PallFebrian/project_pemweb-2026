@@ -150,4 +150,9 @@ class LogStatusPermintaanResource extends Resource
             'index' => Pages\ListLogStatusPermintaans::route('/'),
         ];
     }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return false;
+    }
 }
