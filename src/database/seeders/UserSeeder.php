@@ -16,29 +16,29 @@ class UserSeeder extends Seeder
             'guard_name' => 'web',
         ]);
 
-        $adminRole = Role::firstOrCreate([
+        Role::firstOrCreate([
             'name' => 'admin',
             'guard_name' => 'web',
         ]);
 
-        $ownerRole = Role::firstOrCreate([
-            'name' => 'owner',
+        $kurirRole = Role::firstOrCreate([
+            'name' => 'kurir',
             'guard_name' => 'web',
         ]);
 
-        $userRole = Role::firstOrCreate([
-            'name' => 'user',
+        $pemilikBisnisRole = Role::firstOrCreate([
+            'name' => 'pemilik_bisnis',
             'guard_name' => 'web',
         ]);
 
         $admin = User::updateOrCreate(
             ['email' => 'admin@jastip.test'],
             [
-                'name' => 'Admin Jastip',
+                'name' => 'Admin ESA Runner',
                 'password' => Hash::make('password'),
                 'no_hp' => '081234567890',
                 'nim' => null,
-                'alamat' => 'Kampus',
+                'alamat' => 'Basecamp ESA Runner',
                 'role' => 'admin',
                 'status' => 'aktif',
             ]
@@ -46,22 +46,22 @@ class UserSeeder extends Seeder
 
         $admin->syncRoles([$superAdminRole]);
 
-        $owner = User::updateOrCreate(
+        $pemilik = User::updateOrCreate(
             ['email' => 'owner@jastip.test'],
             [
-                'name' => 'Owner Jastip',
+                'name' => 'Pemilik Bisnis',
                 'password' => Hash::make('password'),
                 'no_hp' => '081234567891',
                 'nim' => null,
-                'alamat' => 'Kampus',
-                'role' => 'owner',
+                'alamat' => 'Basecamp ESA Runner',
+                'role' => 'pemilik_bisnis',
                 'status' => 'aktif',
             ]
         );
 
-        $owner->syncRoles([$ownerRole]);
+        $pemilik->syncRoles([$pemilikBisnisRole]);
 
-        $mahasiswa = User::updateOrCreate(
+        $kurir = User::updateOrCreate(
             ['email' => 'mahasiswa@jastip.test'],
             [
                 'name' => 'Mahasiswa Demo',
@@ -69,11 +69,11 @@ class UserSeeder extends Seeder
                 'no_hp' => '081234567892',
                 'nim' => '20240801001',
                 'alamat' => 'Universitas Esa Unggul Citra Raya',
-                'role' => 'user',
+                'role' => 'kurir',
                 'status' => 'aktif',
             ]
         );
 
-        $mahasiswa->syncRoles([$userRole]);
+        $kurir->syncRoles([$kurirRole]);
     }
 }

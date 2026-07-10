@@ -424,12 +424,10 @@ class PenugasanKurirResource extends Resource
         }
 
         return $user->hasAnyRole([
-            'owner',
             'pemilik_bisnis',
         ]) || in_array(
             $user->role,
             [
-                'owner',
                 'pemilik_bisnis',
             ],
             true

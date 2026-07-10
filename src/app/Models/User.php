@@ -45,23 +45,18 @@ class User extends Authenticatable implements FilamentUser
         $punyaRolePanel = $this->hasAnyRole([
             'super_admin',
             'admin',
-            'owner',
             'pemilik_bisnis',
             'kurir',
         ]);
 
         $roleKolomManual = in_array($this->role, [
             'admin',
-            'owner',
             'pemilik_bisnis',
             'kurir',
         ], true);
 
-        $statusAktif = $this->status === 'aktif'
-            || blank($this->status);
-
         return ($punyaRolePanel || $roleKolomManual)
-            && $statusAktif;
+            && $this->isAktif();
     }
 
     public function permintaanLayanan(): HasMany
@@ -90,25 +85,14 @@ class User extends Authenticatable implements FilamentUser
 
     public function isOwner(): bool
     {
-        return $this->hasAnyRole([
-            'owner',
-            'pemilik_bisnis',
-        ]) || in_array($this->role, [
-            'owner',
-            'pemilik_bisnis',
-        ], true);
+        return $this->hasRole('pemilik_bisnis')
+            || $this->role === 'pemilik_bisnis';
     }
 
     public function isKurir(): bool
     {
         return $this->hasRole('kurir')
             || $this->role === 'kurir';
-    }
-
-    public function isUser(): bool
-    {
-        return $this->hasRole('user')
-            || $this->role === 'user';
     }
 
     public function isAktif(): bool

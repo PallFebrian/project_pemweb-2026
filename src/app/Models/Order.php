@@ -18,6 +18,7 @@ class Order extends Model
         'biaya_express' => 'integer',
         'total_biaya_jasa' => 'integer',
         'tanggal_order' => 'datetime',
+        'data_peta' => 'array',
     ];
 
     protected static function booted(): void
@@ -64,7 +65,10 @@ class Order extends Model
                 return;
             }
 
-            $statusSebelumnya = $order->getOriginal('status_order');
+            $statusSebelumnya = $order->getOriginal(
+                'status_order'
+            );
+
             $statusSekarang = $order->status_order;
 
             $order->riwayatStatusOrders()->create([
@@ -108,12 +112,18 @@ class Order extends Model
 
     public function admin(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'admin_id');
+        return $this->belongsTo(
+            User::class,
+            'admin_id'
+        );
     }
 
     public function kurir(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'kurir_id');
+        return $this->belongsTo(
+            User::class,
+            'kurir_id'
+        );
     }
 
     public function detailOrders(): HasMany
@@ -143,11 +153,15 @@ class Order extends Model
 
     public function riwayatStatusOrders(): HasMany
     {
-        return $this->hasMany(RiwayatStatusOrder::class);
+        return $this->hasMany(
+            RiwayatStatusOrder::class
+        );
     }
 
     public function komplainPelanggans(): HasMany
     {
-    return $this->hasMany(KomplainPelanggan::class);
+        return $this->hasMany(
+            KomplainPelanggan::class
+        );
     }
 }

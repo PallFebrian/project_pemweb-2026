@@ -165,7 +165,6 @@ class KomplainPelangganResource extends Resource
                                             $query->whereIn('name', [
                                                 'super_admin',
                                                 'admin',
-                                                'owner',
                                                 'pemilik_bisnis',
                                             ])
                                     )

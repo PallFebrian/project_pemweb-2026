@@ -77,11 +77,9 @@ class GrafikPesananBulanan extends ChartWidget
         return $user->hasAnyRole([
             'super_admin',
             'admin',
-            'owner',
             'pemilik_bisnis',
         ]) || in_array($user->role, [
             'admin',
-            'owner',
             'pemilik_bisnis',
         ], true);
     }

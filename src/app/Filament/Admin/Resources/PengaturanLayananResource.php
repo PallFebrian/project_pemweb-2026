@@ -84,7 +84,7 @@ class PengaturanLayananResource extends Resource
                 Forms\Components\Section::make('Pengaturan Sistem')
                     ->schema([
                         Forms\Components\Toggle::make('google_maps_api_enabled')
-                            ->label('Google Maps API Aktif')
+                            ->label('OpenStreetMap dan OSRM Aktif')
                             ->default(true),
 
                         Forms\Components\TextInput::make('batas_simpan_dokumen_hari')

@@ -5,7 +5,7 @@ namespace App\Filament\Admin\Resources\OrderResource\Pages;
 use App\Filament\Admin\Resources\OrderResource;
 use App\Models\PengaturanLayanan;
 use App\Models\User;
-use App\Services\GoogleMapsService;
+use App\Services\OpenStreetMapService;
 use App\Services\PriceCalculator;
 use Filament\Actions;
 use Filament\Forms;
@@ -44,7 +44,9 @@ class EditOrder extends EditRecord
                     if (! $layanan) {
                         Notification::make()
                             ->title('Verifikasi gagal')
-                            ->body('Jenis layanan pada pesanan belum tersedia.')
+                            ->body(
+                                'Jenis layanan pada pesanan belum tersedia.'
+                            )
                             ->danger()
                             ->send();
 
@@ -58,7 +60,7 @@ class EditOrder extends EditRecord
                         Notification::make()
                             ->title('Jarak dan biaya belum dihitung')
                             ->body(
-                                'Hitung jarak menggunakan Google Maps atau input jarak manual terlebih dahulu.'
+                                'Hitung jarak otomatis atau input jarak manual terlebih dahulu.'
                             )
                             ->warning()
                             ->send();
@@ -89,202 +91,240 @@ class EditOrder extends EditRecord
                         ->send();
                 }),
 
-                Actions\Action::make('selesaikan_pesanan_tanpa_dana_titip')
-                        ->label('Selesaikan Pesanan')
-                        ->icon('heroicon-o-check-circle')
-                        ->color('success')
-                        ->visible(function (): bool {
-                            $layanan = $this->record->jenisLayanan;
+            Actions\Action::make(
+                'selesaikan_pesanan_tanpa_dana_titip'
+            )
+                ->label('Selesaikan Pesanan')
+                ->icon('heroicon-o-check-circle')
+                ->color('success')
+                ->visible(function (): bool {
+                    $layanan = $this->record->jenisLayanan;
 
-                            return $this->isAdmin()
-                                && $layanan
-                                && ! $layanan->butuh_dana_titip
-                                && $this->record->status_order === 'dalam_perjalanan';
-                        })
-                        ->requiresConfirmation()
-                        ->modalHeading('Selesaikan Pesanan')
-                        ->modalDescription(
-                            'Pastikan kurir sudah sampai tujuan dan bukti serah terima sudah diunggah.'
-                        )
-                        ->modalSubmitActionLabel('Selesaikan')
-                        ->action(function (): void {
-                            $this->record->load([
-                                'jenisLayanan',
-                                'penugasanKurir',
-                                'buktiSerahTerimas',
-                                'pembayaran',
-                            ]);
+                    return $this->isAdmin()
+                        && $layanan
+                        && ! $layanan->butuh_dana_titip
+                        && $this->record->status_order
+                            === 'dalam_perjalanan';
+                })
+                ->requiresConfirmation()
+                ->modalHeading('Selesaikan Pesanan')
+                ->modalDescription(
+                    'Pastikan kurir sudah sampai tujuan dan bukti serah terima sudah diunggah.'
+                )
+                ->modalSubmitActionLabel('Selesaikan')
+                ->action(function (): void {
+                    $this->record->load([
+                        'jenisLayanan',
+                        'penugasanKurir',
+                        'buktiSerahTerimas',
+                        'pembayaran',
+                    ]);
 
-                            $layanan = $this->record->jenisLayanan;
+                    $layanan = $this->record->jenisLayanan;
 
-                            if (! $layanan) {
-                                Notification::make()
-                                    ->title('Pesanan tidak dapat diselesaikan')
-                                    ->body('Jenis layanan tidak ditemukan.')
-                                    ->danger()
-                                    ->send();
+                    if (! $layanan) {
+                        Notification::make()
+                            ->title(
+                                'Pesanan tidak dapat diselesaikan'
+                            )
+                            ->body(
+                                'Jenis layanan tidak ditemukan.'
+                            )
+                            ->danger()
+                            ->send();
 
-                                return;
-                            }
+                        return;
+                    }
 
-                            if ($layanan->butuh_dana_titip) {
-                                Notification::make()
-                                    ->title('Gunakan rekonsiliasi dana titip')
-                                    ->body(
-                                        'Pesanan ini membutuhkan dana titip dan harus diselesaikan melalui menu Dana Titip.'
-                                    )
-                                    ->warning()
-                                    ->send();
+                    if ($layanan->butuh_dana_titip) {
+                        Notification::make()
+                            ->title(
+                                'Gunakan rekonsiliasi dana titip'
+                            )
+                            ->body(
+                                'Pesanan ini membutuhkan dana titip dan harus diselesaikan melalui menu Dana Titip.'
+                            )
+                            ->warning()
+                            ->send();
 
-                                return;
-                            }
+                        return;
+                    }
 
-                            $penugasan = $this->record->penugasanKurir;
+                    $penugasan = $this->record->penugasanKurir;
 
-                            if (! $penugasan) {
-                                Notification::make()
-                                    ->title('Penugasan kurir belum tersedia')
-                                    ->warning()
-                                    ->send();
+                    if (! $penugasan) {
+                        Notification::make()
+                            ->title(
+                                'Penugasan kurir belum tersedia'
+                            )
+                            ->warning()
+                            ->send();
 
-                                return;
-                            }
+                        return;
+                    }
 
-                            if (! in_array(
-                                $penugasan->status_penugasan,
-                                [
-                                    'sampai_tujuan',
-                                    'selesai',
-                                ],
-                                true
-                            )) {
-                                Notification::make()
-                                    ->title('Kurir belum sampai tujuan')
-                                    ->body(
-                                        'Pesanan baru dapat diselesaikan setelah kurir sampai di tujuan.'
-                                    )
-                                    ->warning()
-                                    ->send();
+                    if (! in_array(
+                        $penugasan->status_penugasan,
+                        [
+                            'sampai_tujuan',
+                            'selesai',
+                        ],
+                        true
+                    )) {
+                        Notification::make()
+                            ->title('Kurir belum sampai tujuan')
+                            ->body(
+                                'Pesanan baru dapat diselesaikan setelah kurir sampai di tujuan.'
+                            )
+                            ->warning()
+                            ->send();
 
-                                return;
-                            }
+                        return;
+                    }
 
-                            if ($this->record->buktiSerahTerimas->isEmpty()) {
-                                Notification::make()
-                                    ->title('Bukti serah terima belum tersedia')
-                                    ->body(
-                                        'Kurir harus mengunggah bukti serah terima terlebih dahulu.'
-                                    )
-                                    ->warning()
-                                    ->send();
+                    if (
+                        $this->record
+                            ->buktiSerahTerimas
+                            ->isEmpty()
+                    ) {
+                        Notification::make()
+                            ->title(
+                                'Bukti serah terima belum tersedia'
+                            )
+                            ->body(
+                                'Kurir harus mengunggah bukti serah terima terlebih dahulu.'
+                            )
+                            ->warning()
+                            ->send();
 
-                                return;
-                            }
+                        return;
+                    }
 
-                            DB::transaction(function () use ($penugasan): void {
-                                if ($penugasan->status_penugasan !== 'selesai') {
-                                    $penugasan->update([
-                                        'status_penugasan' => 'selesai',
-                                    ]);
-                                }
-
-                                $this->record->update([
-                                    'status_order' => 'selesai',
+                    DB::transaction(
+                        function () use ($penugasan): void {
+                            if (
+                                $penugasan->status_penugasan
+                                !== 'selesai'
+                            ) {
+                                $penugasan->update([
+                                    'status_penugasan' => 'selesai',
                                 ]);
+                            }
 
-                                $pembayaran = $this->record->pembayaran;
-
-                                if (
-                                    $pembayaran
-                                    && $pembayaran->metode_pembayaran === 'cod'
-                                ) {
-                                    $pembayaran->update([
-                                        'status_pembayaran' => 'lunas',
-                                        'jumlah_bayar' =>
-                                            $this->record->total_biaya_jasa,
-                                        'tanggal_bayar' => now(),
-                                    ]);
-                                }
-                            });
-
-                            $this->refreshFormData([
-                                'status_order',
+                            $this->record->update([
+                                'status_order' => 'selesai',
                             ]);
 
-                            Notification::make()
-                                ->title('Pesanan berhasil diselesaikan')
-                                ->body(
-                                    'Status pesanan dan penugasan kurir telah menjadi selesai.'
-                                )
-                                ->success()
-                                ->send();
-                        }),
+                            $pembayaran =
+                                $this->record->pembayaran;
 
-            Actions\Action::make('hitung_jarak_google_maps')
-                ->label('Hitung Jarak Google Maps')
+                            if (
+                                $pembayaran
+                                && $pembayaran
+                                    ->metode_pembayaran === 'cod'
+                            ) {
+                                $pembayaran->update([
+                                    'status_pembayaran' => 'lunas',
+
+                                    'jumlah_bayar' =>
+                                        $this->record
+                                            ->total_biaya_jasa,
+
+                                    'tanggal_bayar' => now(),
+                                ]);
+                            }
+                        }
+                    );
+
+                    $this->refreshFormData([
+                        'status_order',
+                    ]);
+
+                    Notification::make()
+                        ->title(
+                            'Pesanan berhasil diselesaikan'
+                        )
+                        ->body(
+                            'Status pesanan dan penugasan kurir telah menjadi selesai.'
+                        )
+                        ->success()
+                        ->send();
+                }),
+
+            Actions\Action::make('hitung_jarak_otomatis')
+                ->label('Hitung Jarak Otomatis')
                 ->icon('heroicon-o-map-pin')
                 ->color('success')
                 ->visible(
                     fn (): bool =>
-                        $this->record->status_order === 'menunggu_verifikasi'
+                        $this->record->status_order
+                            === 'menunggu_verifikasi'
                         && $this->isAdmin()
                 )
                 ->requiresConfirmation()
-                ->modalHeading('Hitung Jarak dengan Google Maps API')
+                ->modalHeading('Hitung Jarak Otomatis')
                 ->modalDescription(
-                    'Sistem akan menghitung jarak rute Basecamp → Alamat Eksekusi → Alamat Tujuan, lalu menghitung biaya jasa secara otomatis.'
+                    'Sistem akan menghitung rute Basecamp → Alamat Eksekusi → Alamat Tujuan menggunakan OpenStreetMap dan OSRM, lalu menghitung biaya jasa secara otomatis.'
                 )
                 ->modalSubmitActionLabel('Hitung Sekarang')
                 ->action(function (): void {
                     try {
-                        $setting = PengaturanLayanan::query()->first();
+                        $setting = PengaturanLayanan::query()
+                            ->first();
 
                         if (! $setting) {
-                            throw new \Exception(
+                            throw new \RuntimeException(
                                 'Pengaturan layanan belum tersedia.'
                             );
                         }
 
-                        if (! $setting->google_maps_api_enabled) {
-                            throw new \Exception(
-                                'Google Maps API sedang dinonaktifkan pada pengaturan layanan.'
-                            );
-                        }
-
-                        if (blank($setting->titik_awal_basecamp)) {
-                            throw new \Exception(
+                        if (
+                            blank(
+                                $setting->titik_awal_basecamp
+                            )
+                        ) {
+                            throw new \RuntimeException(
                                 'Titik awal basecamp belum diisi pada pengaturan layanan.'
                             );
                         }
 
-                        $jarakKm = app(
-                            GoogleMapsService::class
-                        )->getTotalDistanceKm(
-                            basecamp: $setting->titik_awal_basecamp,
+                        $dataRute = app(
+                            OpenStreetMapService::class
+                        )->getRouteData(
+                            basecamp:
+                                $setting->titik_awal_basecamp,
+
                             alamatEksekusi:
-                                $this->record->alamat_eksekusi,
+                                $this->record
+                                    ->alamat_eksekusi,
+
                             alamatTujuan:
-                                $this->record->alamat_tujuan,
+                                $this->record
+                                    ->alamat_tujuan,
                         );
+
+                        $jarakKm =
+                            (float) $dataRute['distance_km'];
 
                         $pricing = app(
                             PriceCalculator::class
                         )->calculate(
                             jarakKm: $jarakKm,
+
                             isExpress:
-                                $this->record->pilihan_layanan
+                                $this->record
+                                    ->pilihan_layanan
                                 === 'express'
                         );
 
                         $this->record->update([
-                            'total_jarak_km' =>
-                                $jarakKm,
+                            'total_jarak_km' => $jarakKm,
 
-                            'sumber_jarak' =>
-                                'api',
+                            'sumber_jarak' => 'api',
 
-                            'status_api_maps' =>
-                                'success',
+                            'status_api_maps' => 'success',
+
+                            'data_peta' => $dataRute,
 
                             'biaya_jasa' =>
                                 $pricing['biaya_jasa'],
@@ -293,13 +333,16 @@ class EditOrder extends EditRecord
                                 $pricing['biaya_express'],
 
                             'total_biaya_jasa' =>
-                                $pricing['total_biaya_jasa'],
+                                $pricing[
+                                    'total_biaya_jasa'
+                                ],
                         ]);
 
                         $this->refreshFormData([
                             'total_jarak_km',
                             'sumber_jarak',
                             'status_api_maps',
+                            'data_peta',
                             'biaya_jasa',
                             'biaya_express',
                             'total_biaya_jasa',
@@ -310,24 +353,28 @@ class EditOrder extends EditRecord
                                 'Jarak dan biaya berhasil dihitung'
                             )
                             ->body(
-                                'Sumber jarak disimpan sebagai Google Maps API.'
+                                'Jarak dan rute berhasil dihitung menggunakan OpenStreetMap dan OSRM.'
                             )
                             ->success()
                             ->send();
                     } catch (\Throwable $e) {
                         $this->record->update([
                             'status_api_maps' => 'failed',
+                            'data_peta' => null,
                         ]);
 
                         $this->refreshFormData([
                             'status_api_maps',
+                            'data_peta',
                         ]);
 
                         Notification::make()
-                            ->title('Google Maps API gagal')
+                            ->title(
+                                'Perhitungan jarak otomatis gagal'
+                            )
                             ->body(
                                 $e->getMessage()
-                                . ' Silakan gunakan input jarak manual.'
+                                . ' Silakan periksa alamat atau gunakan input jarak manual.'
                             )
                             ->danger()
                             ->send();
@@ -340,7 +387,8 @@ class EditOrder extends EditRecord
                 ->color('warning')
                 ->visible(
                     fn (): bool =>
-                        $this->record->status_order === 'menunggu_verifikasi'
+                        $this->record->status_order
+                            === 'menunggu_verifikasi'
                         && $this->isAdmin()
                 )
                 ->form([
@@ -354,26 +402,28 @@ class EditOrder extends EditRecord
                         ->minValue(0.1),
                 ])
                 ->action(function (array $data): void {
-                    $jarakKm = (float) $data['total_jarak_km'];
+                    $jarakKm =
+                        (float) $data['total_jarak_km'];
 
                     $pricing = app(
                         PriceCalculator::class
                     )->calculate(
                         jarakKm: $jarakKm,
+
                         isExpress:
-                            $this->record->pilihan_layanan
+                            $this->record
+                                ->pilihan_layanan
                             === 'express'
                     );
 
                     $this->record->update([
-                        'total_jarak_km' =>
-                            $jarakKm,
+                        'total_jarak_km' => $jarakKm,
 
-                        'sumber_jarak' =>
-                            'manual',
+                        'sumber_jarak' => 'manual',
 
-                        'status_api_maps' =>
-                            'manual',
+                        'status_api_maps' => 'manual',
+
+                        'data_peta' => null,
 
                         'biaya_jasa' =>
                             $pricing['biaya_jasa'],
@@ -382,13 +432,16 @@ class EditOrder extends EditRecord
                             $pricing['biaya_express'],
 
                         'total_biaya_jasa' =>
-                            $pricing['total_biaya_jasa'],
+                            $pricing[
+                                'total_biaya_jasa'
+                            ],
                     ]);
 
                     $this->refreshFormData([
                         'total_jarak_km',
                         'sumber_jarak',
                         'status_api_maps',
+                        'data_peta',
                         'biaya_jasa',
                         'biaya_express',
                         'total_biaya_jasa',
