@@ -20,7 +20,7 @@ class PermintaanLayananResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-list';
 
-    protected static ?string $navigationGroup = 'Transaksi Layanan';
+    protected static ?string $navigationGroup = 'Operasional';
 
     protected static ?string $navigationLabel = 'Permintaan Layanan';
 
@@ -28,7 +28,9 @@ class PermintaanLayananResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Permintaan Layanan';
 
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 0;
+
+    protected static bool $shouldRegisterNavigation = true;
 
     public static function getNavigationBadge(): ?string
     {
@@ -361,6 +363,11 @@ class PermintaanLayananResource extends Resource
             'create' => Pages\CreatePermintaanLayanan::route('/create'),
             'edit' => Pages\EditPermintaanLayanan::route('/{record}/edit'),
         ];
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return true;
     }
 
     protected static function setBiayaLayanan(Forms\Get $get, Forms\Set $set): void

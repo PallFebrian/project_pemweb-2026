@@ -45,49 +45,59 @@ class User extends Authenticatable implements FilamentUser
         $punyaRolePanel = $this->hasAnyRole([
             'super_admin',
             'admin',
-            'owner',
+            'pemilik_bisnis',
+            'kurir',
         ]);
 
         $roleKolomManual = in_array($this->role, [
             'admin',
-            'owner',
+            'pemilik_bisnis',
+            'kurir',
         ], true);
 
         return ($punyaRolePanel || $roleKolomManual)
-            && ($this->status === 'aktif' || blank($this->status));
+            && $this->isAktif();
     }
 
     public function permintaanLayanan(): HasMany
     {
-        return $this->hasMany(PermintaanLayanan::class, 'user_id');
+        return $this->hasMany(
+            PermintaanLayanan::class,
+            'user_id'
+        );
     }
 
     public function logStatusPermintaan(): HasMany
     {
-        return $this->hasMany(LogStatusPermintaan::class, 'user_id');
+        return $this->hasMany(
+            LogStatusPermintaan::class,
+            'user_id'
+        );
     }
 
     public function isAdmin(): bool
     {
-        return $this->hasRole('super_admin')
-            || $this->hasRole('admin')
-            || $this->role === 'admin';
+        return $this->hasAnyRole([
+            'super_admin',
+            'admin',
+        ]) || $this->role === 'admin';
     }
 
     public function isOwner(): bool
     {
-        return $this->hasRole('owner')
-            || $this->role === 'owner';
+        return $this->hasRole('pemilik_bisnis')
+            || $this->role === 'pemilik_bisnis';
     }
 
-    public function isUser(): bool
+    public function isKurir(): bool
     {
-        return $this->hasRole('user')
-            || $this->role === 'user';
+        return $this->hasRole('kurir')
+            || $this->role === 'kurir';
     }
 
     public function isAktif(): bool
     {
-        return $this->status === 'aktif';
+        return $this->status === 'aktif'
+            || blank($this->status);
     }
 }

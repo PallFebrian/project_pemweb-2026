@@ -196,10 +196,14 @@ if [ ! -d /var/www/html/vendor ]; then
   composer install --no-interaction --prefer-dist --optimize-autoloader
 fi
 
-# Step 5: Generate app key if not already present
-if [ ! -f /var/www/html/storage/oauth-private.key ]; then
-  echo "🔐 Generating Laravel app key..."
+# Step 5: Generate app key only when APP_KEY is empty
+APP_KEY_VALUE="$(grep -E '^APP_KEY=' /var/www/html/.env 2>/dev/null | cut -d '=' -f2- || true)"
+
+if [ -z "$APP_KEY_VALUE" ]; then
+  echo "🔐 APP_KEY is empty. Generating Laravel app key..."
   php artisan key:generate --force
+else
+  echo "✅ Laravel APP_KEY already exists. Skipping key generation."
 fi
 
 # Step 6: Create necessary folders and set permissions
@@ -217,8 +221,13 @@ echo "🚀 Running project:init..."
 php artisan project:init || true
 
 # Step 9: Create storage symbolic link
-echo "🔗 Creating storage link..."
-php artisan storage:link || true
+# Create storage link only when it does not exist
+if [ ! -L /var/www/html/public/storage ]; then
+  echo "🔗 Creating storage link..."
+  php artisan storage:link
+else
+  echo "✅ Storage link already exists. Skipping."
+fi
 
 # Step 10: Start cron
 echo "🕒 Starting cron service..."

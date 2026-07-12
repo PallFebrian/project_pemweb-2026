@@ -16,6 +16,7 @@ class KategoriLayanan extends Model
         'deskripsi',
         'biaya_normal',
         'biaya_express',
+        'butuh_dana_pembelian',
         'estimasi_normal',
         'estimasi_express',
         'aktif',
@@ -25,6 +26,7 @@ class KategoriLayanan extends Model
         'biaya_normal' => 'decimal:2',
         'biaya_express' => 'decimal:2',
         'aktif' => 'boolean',
+        'butuh_dana_pembelian' => 'boolean',
     ];
 
     protected static function booted(): void
@@ -45,5 +47,10 @@ class KategoriLayanan extends Model
     public function permintaanLayanan(): HasMany
     {
         return $this->hasMany(PermintaanLayanan::class, 'kategori_layanan_id');
+    }
+
+    public function layananJasaSuruhs(): HasMany
+    {
+        return $this->hasMany(LayananJasaSuruh::class, 'kategori_layanan_id');
     }
 }
