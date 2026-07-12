@@ -27,6 +27,8 @@ class PenugasanKurirResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Penugasan Kurir';
 
+    protected static bool $shouldRegisterNavigation = false;
+
     protected static ?int $navigationSort = 2;
 
     public static function getNavigationLabel(): string
@@ -38,7 +40,7 @@ class PenugasanKurirResource extends Resource
 
     public static function shouldRegisterNavigation(): bool
     {
-        return static::canViewAny();
+        return false;
     }
 
     public static function form(Form $form): Form

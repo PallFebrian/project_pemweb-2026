@@ -24,16 +24,14 @@ class OrderResource extends Resource
     protected static ?string $navigationGroup =
         'Operasional';
 
-    protected static ?string $navigationLabel =
-        'Pesanan';
+    protected static ?string $navigationLabel = 'Pesanan Internal';
 
-    protected static ?string $modelLabel =
-        'Pesanan';
-
-    protected static ?string $pluralModelLabel =
-        'Pesanan';
+    protected static ?string $modelLabel = 'Pesanan';
+    protected static ?string $pluralModelLabel = 'Pesanan';
 
     protected static ?int $navigationSort = 1;
+
+    protected static bool $shouldRegisterNavigation = false;
 
     public static function form(Form $form): Form
     {

@@ -26,6 +26,8 @@ class DanaTitipResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Dana Titip';
 
+    protected static bool $shouldRegisterNavigation = false;
+
     protected static ?int $navigationSort = 2;
 
     public static function form(Form $form): Form

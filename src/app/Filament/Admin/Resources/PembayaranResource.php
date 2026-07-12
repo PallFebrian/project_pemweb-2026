@@ -26,6 +26,8 @@ class PembayaranResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Pembayaran';
 
+    protected static bool $shouldRegisterNavigation = false; 
+
     protected static ?int $navigationSort = 1;
 
     public static function form(Form $form): Form

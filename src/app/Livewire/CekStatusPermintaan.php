@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Models\LogStatusPermintaan;
 use App\Models\PermintaanLayanan;
 use Livewire\Component;
 
@@ -15,9 +16,30 @@ class CekStatusPermintaan extends Component
 
     public string $pesanRefresh = '';
 
+    public function mount(): void
+    {
+        $kode = request()->query('kode');
+        $noHp = request()->query('no_hp');
+
+        if (blank($kode) || blank($noHp)) {
+            return;
+        }
+
+        $this->kode = strtoupper(trim((string) $kode));
+        $this->no_hp = preg_replace('/\s+/', '', trim((string) $noHp));
+
+        $permintaan = $this->ambilPermintaan();
+
+        $this->sudahDicari = true;
+        $this->permintaanId = $permintaan?->id;
+    }
+
     public function cari(): void
     {
         $this->pesanRefresh = '';
+
+        $this->kode = strtoupper(trim($this->kode));
+        $this->no_hp = preg_replace('/\s+/', '', trim($this->no_hp));
 
         $this->validate([
             'kode' => ['required', 'string', 'max:50'],
@@ -27,10 +49,7 @@ class CekStatusPermintaan extends Component
             'no_hp.required' => 'Nomor WhatsApp wajib diisi.',
         ]);
 
-        $permintaan = PermintaanLayanan::query()
-            ->where('kode', trim($this->kode))
-            ->where('no_hp', trim($this->no_hp))
-            ->first();
+        $permintaan = $this->ambilPermintaan();
 
         $this->sudahDicari = true;
         $this->permintaanId = $permintaan?->id;
@@ -40,13 +59,11 @@ class CekStatusPermintaan extends Component
     {
         if (blank($this->kode) || blank($this->no_hp)) {
             $this->resetPencarian();
+
             return;
         }
 
-        $permintaan = PermintaanLayanan::query()
-            ->where('kode', trim($this->kode))
-            ->where('no_hp', trim($this->no_hp))
-            ->first();
+        $permintaan = $this->ambilPermintaan();
 
         $this->sudahDicari = true;
         $this->permintaanId = $permintaan?->id;
@@ -64,14 +81,30 @@ class CekStatusPermintaan extends Component
         ]);
     }
 
+    protected function ambilPermintaan(): ?PermintaanLayanan
+    {
+        return PermintaanLayanan::query()
+            ->whereRaw('UPPER(kode) = ?', [strtoupper(trim($this->kode))])
+            ->where('no_hp', preg_replace('/\s+/', '', trim($this->no_hp)))
+            ->first();
+    }
+
     public function render()
     {
         $permintaan = $this->permintaanId
             ? PermintaanLayanan::with('kategoriLayanan')->find($this->permintaanId)
             : null;
 
+        $riwayatStatus = $permintaan
+            ? LogStatusPermintaan::query()
+                ->where('permintaan_layanan_id', $permintaan->id)
+                ->latest()
+                ->get()
+            : collect();
+
         return view('livewire.cek-status-permintaan', [
             'permintaan' => $permintaan,
+            'riwayatStatus' => $riwayatStatus,
         ]);
     }
 }

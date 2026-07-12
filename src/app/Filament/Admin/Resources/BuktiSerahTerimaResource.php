@@ -28,6 +28,8 @@ class BuktiSerahTerimaResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Bukti Serah Terima';
 
+    protected static bool $shouldRegisterNavigation = false;
+
     protected static ?int $navigationSort = 3;
 
     public static function form(Form $form): Form

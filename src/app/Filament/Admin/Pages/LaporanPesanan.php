@@ -21,6 +21,8 @@ class LaporanPesanan extends Page
 
     protected static ?string $title = 'Laporan Pesanan';
 
+    protected static bool $shouldRegisterNavigation = false;
+
     protected static ?int $navigationSort = 1;
 
     protected static string $view =

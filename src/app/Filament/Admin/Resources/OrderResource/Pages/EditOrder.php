@@ -357,6 +357,11 @@ class EditOrder extends EditRecord
                             )
                             ->success()
                             ->send();
+                        $this->redirect(
+                            OrderResource::getUrl('edit', [
+                                'record' => $this->record,
+                            ])
+                        );
                     } catch (\Throwable $e) {
                         $this->record->update([
                             'status_api_maps' => 'failed',
