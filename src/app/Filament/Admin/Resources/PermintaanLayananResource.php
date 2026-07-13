@@ -22,13 +22,13 @@ class PermintaanLayananResource extends Resource
 
     protected static ?string $navigationGroup = 'Operasional';
 
-    protected static ?string $navigationLabel = 'Permintaan Layanan';
+    protected static ?string $navigationLabel = 'Pesanan';
 
-    protected static ?string $modelLabel = 'Permintaan Layanan';
+    protected static ?string $modelLabel = 'Pesanan';
 
-    protected static ?string $pluralModelLabel = 'Permintaan Layanan';
+    protected static ?string $pluralModelLabel = 'Pesanan';
 
-    protected static ?int $navigationSort = 0;
+    protected static ?int $navigationSort = 1;
 
     protected static bool $shouldRegisterNavigation = true;
 
